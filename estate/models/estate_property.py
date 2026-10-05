@@ -29,6 +29,7 @@ class EstateProperty(models.Model):
     tag_ids = fields.Many2many("estate.property.tag", string="Tag")
     offer_ids = fields.One2many("estate.property.offer", "property_id",  string="Offer")
 
+    @api.depends("living_area", "garden_area")    
     def _compute_total_area(self):
         for rec in self:
             rec.total_area = rec.living_area + rec.garden_area
