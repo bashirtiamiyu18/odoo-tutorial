@@ -1,5 +1,6 @@
 from odoo import models, fields, api
 from dateutil.relativedelta import relativedelta
+from odoo.exceptions import UserError
 
 
 class EstateProperty(models.Model):
@@ -15,11 +16,13 @@ class EstateProperty(models.Model):
     bedrooms = fields.Integer(default=2)
     living_area = fields.Integer()
     facades = fields.Integer()
+    cancel = fields.Char()
+    sold = fields.Char()
     garage = fields.Boolean()
     garden = fields.Boolean()
     best_price = fields.Float(compute="_compute_best_price", string="Best Offer")
     garden_area = fields.Integer()
-    total_area = fields.Integer(compute="_compute_total_area")
+    total_area = fields.Integer(compute="_compute_total_area", string="Total Area (sqm)")
     garden_orientation = fields.Selection(selection=[("north", "North"), ("south", "South"), ("east", "East"), ("west", "West"),])
     state = fields.Selection(selection=[("new", "New"), ("offer_received", "Offer Received"), ("offer_accepted", "Offer Accepted"), ("sold", "Sold"), ("cancelled", "Cancelled")], default="new")
 
@@ -38,7 +41,44 @@ class EstateProperty(models.Model):
         for record in self:
             prices = record.offer_ids.mapped('price')
             record.best_price = max(prices, default=0)
-    
-    
+
+    garden = fields.Boolean(string="Garden")
+    garden_area = fields.Integer(string="Garden Area")
+    garden_orientation = fields.Selection([("north", "North"), ("south", "Sourth"), ("east", "East"), ("west", "West"),])
+
 
     
+    
+    def action_cancel(self):
+            for prop in self:
+                if prop.state == 'sold':
+                    raise UserError("Sold properties cannot be canceled.") 
+                prop.state = 'canceled'
+            return True
+    
+    def action_sold(self):
+            for prop in self:
+                if prop.state == 'canceled':
+                    raise UserError("Canceled properties cannot be sold.")
+                prop.state = 'sold'
+            return True
+    
+
+    @api.onchange("garden")
+    def _onchange_garden(self):
+        if self.garden:
+            self.garden_area = 10
+            self.garden_orientation = "north"
+        else:
+            self.garden_area = 0
+            self.garden_orientation = False
+
+    
+
+
+
+
+
+
+
+            

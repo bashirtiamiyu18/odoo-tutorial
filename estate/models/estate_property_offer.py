@@ -1,5 +1,6 @@
 from odoo import models, fields, api
 from datetime import timedelta
+from odoo.exceptions import ValidationError
 
 
 class EstatePropertyOffer(models.Model):
@@ -43,3 +44,18 @@ class EstatePropertyOffer(models.Model):
             ("refused", "Refused"),
         ]
     )
+
+    def action_accept(self):
+        for offer in self:
+            offers_status = offer.property_id.offer_ids.mapped("status")
+            offer_accepted = any([o for o in offers_status if o == "accepted"])
+            if offer_accepted:
+                raise ValidationError("An offer is already accepted")
+            else:
+                offer.property_id.buyer_id = offer.partner_id
+                offer.property_id.selling_price = offer.price
+                offer.property_id.state = "offer_accepted"
+                offer.status = "accepted"
+
+    def action_refuse(self):
+        pass
